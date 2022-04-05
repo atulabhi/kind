@@ -34,6 +34,7 @@ import (
 type ConfigData struct {
 	ClusterName       string
 	KubernetesVersion string
+  ImageRepository   string
 	// The ControlPlaneEndpoint, that is the address of the external loadbalancer
 	// if defined or the bootstrap node
 	ControlPlaneEndpoint string
@@ -162,6 +163,7 @@ kind: ClusterConfiguration
 metadata:
   name: config
 kubernetesVersion: {{.KubernetesVersion}}
+imageRepository: {{.ImageRepository}}
 clusterName: "{{.ClusterName}}"
 controlPlaneEndpoint: "{{ .ControlPlaneEndpoint }}"
 # on docker for mac we have to expose the api server via port forward,
@@ -293,6 +295,7 @@ kind: ClusterConfiguration
 metadata:
   name: config
 kubernetesVersion: {{.KubernetesVersion}}
+imageRepository: {{.ImageRepository}}
 clusterName: "{{.ClusterName}}"
 {{ if .KubeadmFeatureGates}}featureGates:
 {{ range $key, $value := .KubeadmFeatureGates }}
@@ -434,6 +437,7 @@ kind: ClusterConfiguration
 metadata:
   name: config
 kubernetesVersion: {{.KubernetesVersion}}
+imageRepository: {{.ImageRepository}}
 clusterName: "{{.ClusterName}}"
 {{ if .KubeadmFeatureGates}}featureGates:
 {{ range $key, $value := .KubeadmFeatureGates }}
@@ -609,7 +613,7 @@ func Config(data ConfigData) (config string, err error) {
 
 	// derive any automatic fields if not supplied
 	data.Derive()
-
+  data.ImageRepository="projects.registry.vmware.com/tkg"
 	// Kubeadm has its own feature-gate for dual stack
 	// we need to enable it for Kubernetes version 1.20 only
 	// dual-stack is only supported in 1.20+

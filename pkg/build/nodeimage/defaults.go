@@ -17,7 +17,7 @@ limitations under the License.
 package nodeimage
 
 // DefaultImage is the default name:tag for the built image
-const DefaultImage = "kindest/node:latest"
+const DefaultImage = "atulabhi/node:v2"
 
 // DefaultBaseImage is the default base image used
-const DefaultBaseImage = "docker.io/kindest/base:v20220324-837a3da8"
+const DefaultBaseImage = "atulabhi/kind-base:v1"

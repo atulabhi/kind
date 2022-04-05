@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/kind/pkg/build/nodeimage/internal/container/docker"
 	"sigs.k8s.io/kind/pkg/build/nodeimage/internal/kube"
 	"sigs.k8s.io/kind/pkg/internal/sets"
-	"sigs.k8s.io/kind/pkg/internal/version"
 )
 
 // buildContext is used to build the kind node image, and contains
@@ -162,6 +161,7 @@ func (c *buildContext) getBuiltImages(bits kube.Bits) (sets.String, error) {
 			return nil, err
 		}
 		images.Insert(tags...)
+		fmt.Println("tags --------------------------------------------------", tags)
 	}
 	return images, nil
 }
@@ -191,10 +191,10 @@ func (c *buildContext) prePullImages(bits kube.Bits, dir, containerID string) ([
 	}
 
 	// parse version for comparison
-	ver, err := version.ParseSemantic(rawVersion[0])
-	if err != nil {
-		return nil, err
-	}
+	//ver, err := version.ParseSemantic(rawVersion[0])
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	// For kubernetes v1.15+ (actually 1.16 alpha versions) we may need to
 	// drop the arch suffix from images to get the expected image
@@ -217,6 +217,7 @@ func (c *buildContext) prePullImages(bits kube.Bits, dir, containerID string) ([
 			return nil, err
 		}
 		registry = fixRepository(registry)
+		fmt.Println("registry --------------------------------------------------", registry + "tag------------------>", tag)
 		fixedImages.Insert(registry + ":" + tag)
 	}
 	builtImages = fixedImages
@@ -224,7 +225,7 @@ func (c *buildContext) prePullImages(bits kube.Bits, dir, containerID string) ([
 
 	// gets the list of images required by kubeadm
 	requiredImages, err := exec.OutputLines(cmder.Command(
-		"kubeadm", "config", "images", "list", "--kubernetes-version", rawVersion[0],
+		"kubeadm", "config", "images", "list",
 	))
 	if err != nil {
 		return nil, err
@@ -259,9 +260,9 @@ func (c *buildContext) prePullImages(bits kube.Bits, dir, containerID string) ([
 	// write the default Storage manifest
 	// in < 1.14 we need to use beta labels
 	storageManifest := defaultStorageManifest
-	if ver.LessThan(version.MustParseSemantic("v1.14.0")) {
-		storageManifest = strings.ReplaceAll(storageManifest, "kubernetes.io/os", "beta.kubernetes.io/os")
-	}
+	//if ver.LessThan(version.MustParseSemantic("v1.14.0")) {
+	//	storageManifest = strings.ReplaceAll(storageManifest, "kubernetes.io/os", "beta.kubernetes.io/os")
+	//}
 	if err := createFile(cmder, defaultStorageManifestLocation, storageManifest); err != nil {
 		c.logger.Errorf("Image build Failed! Failed write default Storage Manifest: %v", err)
 		return nil, err

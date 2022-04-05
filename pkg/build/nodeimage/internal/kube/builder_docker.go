@@ -17,15 +17,12 @@ limitations under the License.
 package kube
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"sigs.k8s.io/kind/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
 	"sigs.k8s.io/kind/pkg/log"
 
-	"sigs.k8s.io/kind/pkg/internal/version"
 )
 
 // TODO(bentheelder): plumb through arch
@@ -66,81 +63,21 @@ func (b *dockerBuilder) Build() (Bits, error) {
 	}
 
 	// capture version info
-	sourceVersionRaw, err := sourceVersion(b.kubeRoot)
+	_, err = sourceVersion(b.kubeRoot)
 	if err != nil {
 		return nil, err
 	}
 
-	kubeVersion, err := version.ParseSemantic(sourceVersionRaw)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse source version")
-	}
 
-	makeVars := []string{
-		// ensure the build isn't especially noisy..
-		"KUBE_VERBOSE=0",
-		// we don't want to build these images as we don't use them ...
-		"KUBE_BUILD_HYPERKUBE=n",
-		"KUBE_BUILD_CONFORMANCE=n",
-		// build for the host platform
-		"KUBE_BUILD_PLATFORMS=" + dockerBuildOsAndArch(b.arch),
-	}
-
-	// we will pass through the environment variables, prepending defaults
-	// NOTE: if env are specified multiple times the last one wins
 	// NOTE: currently there are no defaults so this is essentially a deep copy
-	env := append([]string{}, os.Environ()...)
 	// binaries we want to build
-	what := []string{
-		// binaries we use directly
-		"cmd/kubeadm",
-		"cmd/kubectl",
-		"cmd/kubelet",
-	}
-
-	// build images + binaries (binaries only on 1.21+)
-	cmd := exec.Command("make",
-		append(
-			[]string{
-				"quick-release-images",
-				"KUBE_EXTRA_WHAT=" + strings.Join(what, " "),
-			},
-			makeVars...,
-		)...,
-	).SetEnv(env...)
-	exec.InheritOutput(cmd)
-	if err := cmd.Run(); err != nil {
-		return nil, errors.Wrap(err, "failed to build images")
-	}
-
-	// KUBE_EXTRA_WHAT added in this commit
-	// https://github.com/kubernetes/kubernetes/commit/35061acc28a666569fdd4d1c8a7693e3c01e14be
-	if kubeVersion.LessThan(version.MustParseSemantic("v1.21.0-beta.1.153+35061acc28a666")) {
-		// on older versions we still need to build binaries separately
-		cmd = exec.Command(
-			"build/run.sh",
-			append(
-				[]string{
-					"make",
-					"all",
-					"WHAT=" + strings.Join(what, " "),
-				},
-				makeVars...,
-			)...,
-		).SetEnv(env...)
-		exec.InheritOutput(cmd)
-		if err := cmd.Run(); err != nil {
-			return nil, errors.Wrap(err, "failed to build binaries")
-		}
-	}
-
 	binDir := filepath.Join(b.kubeRoot,
 		"_output", "dockerized", "bin", "linux", b.arch,
 	)
 	imageDir := filepath.Join(b.kubeRoot,
 		"_output", "release-images", b.arch,
 	)
-
+        fmt.Println( "Imagedir ------------------------------------------------------------------", imageDir)
 	return &bits{
 		binaryPaths: []string{
 			filepath.Join(binDir, "kubeadm"),
@@ -152,8 +89,9 @@ func (b *dockerBuilder) Build() (Bits, error) {
 			filepath.Join(imageDir, "kube-controller-manager.tar"),
 			filepath.Join(imageDir, "kube-scheduler.tar"),
 			filepath.Join(imageDir, "kube-proxy.tar"),
+			filepath.Join(imageDir, "etcd.tar"),
 		},
-		version: sourceVersionRaw,
+		version: "v1.22.8",
 	}, nil
 }
 
