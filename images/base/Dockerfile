@@ -29,8 +29,8 @@ ARG TARGETARCH
 # The repository contains latest stable releases and nightlies built for multiple architectures
 ARG CONTAINERD_VERSION="1.6.2"
 ARG CONTAINERD_BASE_URL="https://github.com/kind-ci/containerd-nightlies/releases/download/containerd-${CONTAINERD_VERSION}"
-ARG CONTAINERD_URL="${CONTAINERD_BASE_URL}/containerd-${CONTAINERD_VERSION}-linux-${TARGETARCH}.tar.gz"
-ARG CONTAINERD_AMD64_SHA256SUM="be9efcdefdec84023ffba91cb55617b5ac3f178b6f3b1ccce314e3e2dad74d68"
+ARG CONTAINERD_URL="http://build-squid.eng.vmware.com/build/mts/release/bora-19535252/publish/lin64/kscom_release/containerd-v1.5.9+vmware.2/containerd/executables/cri-containerd-v1.5.9+vmware.2.linux-amd64.tar.gz"
+ARG CONTAINERD_AMD64_SHA256SUM="460dd5344fd2b9dd518fce1968b7ffb32cd7db869bb749ab9d61b75d774a9ba2"
 ARG CONTAINERD_ARM64_SHA256SUM="ecc43b17bffe8fafa92ebc294859c3713d058872314fc1674349eff88709b02c"
 ARG CONTAINERD_PPC64LE_SHA256SUM="6ea85f09e2a01f6f01666ac3842d6a210d905e1ed01e98beb8c4c7f547ef2e4d"
 ARG CONTAINERD_S390X_SHA256SUM="cc1b634dc53a30bc06eb0bb8ff82e42ff13802e682f114cf24190055e2c95be0"
@@ -78,7 +78,9 @@ COPY --chmod=0644 files/etc/default/* /etc/default/
 COPY --chmod=0644 files/etc/sysctl.d/* /etc/sysctl.d/
 COPY --chmod=0644 files/etc/systemd/system/* /etc/systemd/system/
 COPY --chmod=0644 files/etc/systemd/system/kubelet.service.d/* /etc/systemd/system/kubelet.service.d/
-
+COPY --chmod=0644 cri-containerd-v1.6.0+vmware.1.linux-amd64.tar /etc/containerd/
+COPY --chmod=0644 cni-plugins-v1.1.0+vmware.2.tgz	 /etc/containerd/
+COPY --chmod=0644 crictl /etc/containerd/
 # Install dependencies, first from apt, then from release tarballs.
 # NOTE: we use one RUN to minimize layers.
 #
@@ -131,15 +133,12 @@ RUN echo "Enabling kubelet ... " \
     && systemctl enable kubelet.service
 
 RUN echo "Installing containerd ..." \
-    && curl -sSL --retry 5 --output /tmp/containerd.${TARGETARCH}.tgz "${CONTAINERD_URL}" \
-    && echo "${CONTAINERD_AMD64_SHA256SUM}  /tmp/containerd.amd64.tgz" | tee /tmp/containerd.sha256 \
-    && echo "${CONTAINERD_ARM64_SHA256SUM}  /tmp/containerd.arm64.tgz" | tee -a /tmp/containerd.sha256 \
-    && echo "${CONTAINERD_PPC64LE_SHA256SUM}  /tmp/containerd.ppc64le.tgz" | tee -a /tmp/containerd.sha256 \
-    && echo "${CONTAINERD_S390X_SHA256SUM}  /tmp/containerd.s390x.tgz" | tee -a /tmp/containerd.sha256 \
+    && mv /etc/containerd/cri-containerd-v1.6.0+vmware.1.linux-amd64.tar /tmp/ \
+    && echo "${CONTAINERD_AMD64_SHA256SUM}  /tmp/cri-containerd-v1.6.0+vmware.1.linux-amd64.tar" | tee /tmp/containerd.sha256 \
     && sha256sum --ignore-missing -c /tmp/containerd.sha256 \
     && rm -f /tmp/containerd.sha256 \
-    && tar -C /usr/local -xzvf /tmp/containerd.${TARGETARCH}.tgz \
-    && rm -rf /tmp/containerd.${TARGETARCH}.tgz \
+    && tar  -xzvf /tmp/cri-containerd-v1.6.0+vmware.1.linux-amd64.tar \
+    && rm -rf /tmp/cri-containerd-v1.6.0+vmware.1.linux-amd64.tar \
     && rm -f /usr/local/bin/containerd-stress /usr/local/bin/containerd-shim-runc-v1 \
     && curl -sSL --retry 5 --output /tmp/runc.${TARGETARCH} "${RUNC_URL}" \
     && echo "${RUNC_AMD64_SHA256SUM}  /tmp/runc.amd64" | tee /tmp/runc.sha256 \
@@ -158,27 +157,28 @@ RUN echo "Installing containerd ..." \
     && systemctl enable containerd
 
 RUN echo "Installing crictl ..." \
-    && curl -sSL --retry 5 --output /tmp/crictl.${TARGETARCH}.tgz "${CRICTL_URL}" \
-    && echo "${CRICTL_AMD64_SHA256SUM}  /tmp/crictl.amd64.tgz" | tee /tmp/crictl.sha256 \
-    && echo "${CRICTL_ARM64_SHA256SUM}  /tmp/crictl.arm64.tgz" | tee -a /tmp/crictl.sha256 \
-    && echo "${CRICTL_PPC64LE_SHA256SUM}  /tmp/crictl.ppc64le.tgz" | tee -a /tmp/crictl.sha256 \
-    && echo "${CRICTL_S390X_SHA256SUM}  /tmp/crictl.s390x.tgz" | tee -a /tmp/crictl.sha256 \
-    && sha256sum --ignore-missing -c /tmp/crictl.sha256 \
-    && rm -f /tmp/crictl.sha256 \
-    && tar -C /usr/local/bin -xzvf /tmp/crictl.${TARGETARCH}.tgz \
-    && rm -rf /tmp/crictl.${TARGETARCH}.tgz
+    # && curl -sSL --retry 5 --output /tmp/crictl.${TARGETARCH}.tgz "${CRICTL_URL}" \
+    # && echo "${CRICTL_AMD64_SHA256SUM}  /tmp/crictl.amd64.tgz" | tee /tmp/crictl.sha256 \
+    # && echo "${CRICTL_ARM64_SHA256SUM}  /tmp/crictl.arm64.tgz" | tee -a /tmp/crictl.sha256 \
+    # && echo "${CRICTL_PPC64LE_SHA256SUM}  /tmp/crictl.ppc64le.tgz" | tee -a /tmp/crictl.sha256 \
+    # && echo "${CRICTL_S390X_SHA256SUM}  /tmp/crictl.s390x.tgz" | tee -a /tmp/crictl.sha256 \
+    # && sha256sum --ignore-missing -c /tmp/crictl.sha256 \
+    # && rm -f /tmp/crictl.sha256 \
+    # && tar -C /usr/local/bin -xzvf /tmp/crictl.${TARGETARCH}.tgz \
+    # && rm -rf /tmp/crictl.${TARGETARCH}.tgz
+    mv /etc/containerd/crictl /usr/local/bin
 
 RUN echo "Installing CNI plugin binaries ..." \
-    && curl -sSL --retry 5 --output /tmp/cni.${TARGETARCH}.tgz "${CNI_PLUGINS_URL}" \
-    && echo "${CNI_PLUGINS_AMD64_SHA256SUM}  /tmp/cni.amd64.tgz" | tee /tmp/cni.sha256 \
+    && mv /etc/containerd/cni-plugins-v1.1.0+vmware.2.tgz /tmp/ \
+    && echo "${CNI_PLUGINS_AMD64_SHA256SUM}  /tmp/cni-plugins-v1.1.0+vmware.2.tgz " | tee /tmp/cni.sha256 \
     && echo "${CNI_PLUGINS_ARM64_SHA256SUM}  /tmp/cni.arm64.tgz" | tee -a /tmp/cni.sha256 \
     && echo "${CNI_PLUGINS_PPC64LE_SHA256SUM}  /tmp/cni.ppc64le.tgz" | tee -a /tmp/cni.sha256 \
     && echo "${CNI_PLUGINS_S390X_SHA256SUM}  /tmp/cni.s390x.tgz" | tee -a /tmp/cni.sha256 \
     && sha256sum --ignore-missing -c /tmp/cni.sha256 \
     && rm -f /tmp/cni.sha256 \
     && mkdir -p /opt/cni/bin \
-    && tar -C /opt/cni/bin -xzvf /tmp/cni.${TARGETARCH}.tgz \
-    && rm -rf /tmp/cni.${TARGETARCH}.tgz \
+    && tar -C /opt/cni/bin -xzvf /tmp/cni-plugins-v1.1.0+vmware.2.tgz  \
+    && rm -rf /tmp/cni-plugins-v1.1.0+vmware.2.tgz \
     && find /opt/cni/bin -type f -not \( \
          -iname host-local \
          -o -iname ptp \
