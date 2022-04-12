@@ -170,15 +170,15 @@ RUN echo "Installing crictl ..." \
 
 RUN echo "Installing CNI plugin binaries ..." \
     && mv /etc/containerd/cni-plugins-v1.1.0+vmware.2.tgz /tmp/ \
-    && echo "${CNI_PLUGINS_AMD64_SHA256SUM}  /tmp/cni.amd64.tgz" | tee /tmp/cni.sha256 \
+    && echo "${CNI_PLUGINS_AMD64_SHA256SUM}  /tmp/cni-plugins-v1.1.0+vmware.2.tgzcni-plugins-v1.1.0+vmware.2.tgz" | tee /tmp/cni.sha256 \
     && echo "${CNI_PLUGINS_ARM64_SHA256SUM}  /tmp/cni.arm64.tgz" | tee -a /tmp/cni.sha256 \
     && echo "${CNI_PLUGINS_PPC64LE_SHA256SUM}  /tmp/cni.ppc64le.tgz" | tee -a /tmp/cni.sha256 \
     && echo "${CNI_PLUGINS_S390X_SHA256SUM}  /tmp/cni.s390x.tgz" | tee -a /tmp/cni.sha256 \
     && sha256sum --ignore-missing -c /tmp/cni.sha256 \
     && rm -f /tmp/cni.sha256 \
     && mkdir -p /opt/cni/bin \
-    && tar -C /opt/cni/bin -xzvf /tmp/cni.${TARGETARCH}.tgz \
-    && rm -rf /tmp/cni.${TARGETARCH}.tgz \
+    && tar -C /opt/cni/bin -xzvf /tmp/cni-plugins-v1.1.0+vmware.2.tgz \
+    && rm -rf /tmp/cni-plugins-v1.1.0+vmware.2.tgz \
     && find /opt/cni/bin -type f -not \( \
          -iname host-local \
          -o -iname ptp \
